@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supervisor Dashboard</title>
+   
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-image: url('./bg-image.avif'); /* Replace with your background image URL */
+            background-size: cover;
+            background-position: center;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        header {
+            background-color: #000; /* Black color for the header */
+            color: #fff; /* White text color */
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 30px;
+            width: 100%;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 1000;
+            box-sizing: border-box;
+            border-bottom: 4px solid #e74c3c;
+        }
+
+        header img {
+            max-width: 150px; /* Adjust the size of the logo as needed */
+            height: auto; /* Ensure the logo maintains its aspect ratio */
+        }
+
+        header h1 {
+            margin: 0;
+            color: #dc3545; /* Red color for the title */
+            font-size: 24px;
+            flex: 1;
+            text-align: center;
+        }
+
+        header #logoutButton {
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            border: none;
+            background-color: #dc3545; /* Red color for logout button */
+            color: #ffffff;
+        }
+
+        header #logoutButton:hover {
+            background-color: #c82333;
+        }
+
+        main {
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            width: 90%;
+            max-width: 1200px; /* Wider width to fit computer screens */
+            margin-top: 100px; /* Adjust based on header height */
+            box-sizing: border-box;
+        }
+
+        #ordersTable {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+
+        #ordersTable th, #ordersTable td {
+            padding: 12px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+
+        #ordersTable th {
+            background-color: #f4f4f4;
+            font-weight: bold;
+        }
+
+        #ordersTable tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+
+        button {
+            padding: 12px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            border: none;
+            color: #ffffff;
+            margin: 5px;
+            display: inline-block;
+        }
+
+        #approveOrdersBtn {
+            background-color: #007bff; /* Blue color for approve button */
+        }
+
+        #approveOrdersBtn:hover {
+            background-color: #0056b3;
+        }
+
+        #downloadCSVButton {
+            background-color: #28a745; /* Green color for download button */
+        }
+
+        #downloadCSVButton:hover {
+            background-color: #218838;
+        }
+
+        .alert {
+            padding: 1rem;
+            margin: 1rem 0;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background-color: #f8d7da;
+            color: #721c24;
+            display: none;
+        }
+
+        .alert.success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .alert.info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .alert.error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        .alert {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            color: white;
+            font-size: 16px;
+            z-index: 1000;
+        }
+
+        .alert.success {
+            background-color: #4CAF50; /* Green */
+        }
+
+        .alert.error {
+            background-color: #f44336; /* Red */
+        }
+
+        .alert.info {
+            background-color: #2196F3; /* Blue */
+        }
+       /* Popup modal styling */
+.modal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1050;
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    display: none;
+    width: 300px; /* Adjust size as necessary */
+    text-align: center;
+}
+
+.modal.active {
+    display: block; /* Show the modal */
+}
+
+.modal-close {
+    cursor: pointer;
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    font-size: 1.2em;
+    color: #333;
+}
+
+.modal button {
+    background-color: #007bff; /* Blue background for OK button */
+    color: white; /* White text for visibility */
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    margin-top: 15px; /* Space above the button */
+    transition: background-color 0.2s; /* Smooth transition for hover effect */
+}
+
+.modal button:hover {
+    background-color: #0056b3; /* Darker blue when hovered */
+}
+
+
+    </style>
+</head>
+<body>
+    <header>
+        <img src="company-logo.png" alt="Company Logo"> <!-- Replace with your logo -->
+        <h1>Supervisor Dashboard</h1>
+        <button id="logoutButton">Logout</button>
+    </header>
+    <main>
+        <table id="ordersTable">
+            <thead>
+                <tr>
+                    <th>Select</th>
+                    <th>Order ID</th>
+                    <th>Product Name</th>
+                    <th>Quantity</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Order rows will be inserted here -->
+            </tbody>
+        </table>
+        <button id="approveOrdersBtn" class="btn">Approve Selected Orders</button>
+        <button id="downloadCSVButton">Download CSV</button>
+    </main>
+    <script>
+        document.getElementById('logoutButton').addEventListener('click', () => {
+            window.location.href = '/index.html'; // Redirect to login page
+        });
+
+        document.getElementById('approveOrdersBtn').addEventListener('click', async function() {
+            const selectedOrderIds = Array.from(document.querySelectorAll('#ordersTable input[type="checkbox"]:checked'))
+                .map(cb => cb.value)
+                .filter(value => value);
+
+            if (selectedOrderIds.length === 0) {
+                showAlert('info', 'No orders selected for approval');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/approve-orders', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ orderIds: selectedOrderIds })
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    showAlert('success', 'Selected orders approved successfully');
+                } else {
+                    showAlert('error', 'Failed to approve orders: ' + result.message);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showAlert('error', 'An error occurred while approving orders');
+            }
+        });
+        document.getElementById('downloadCSVButton').addEventListener('click', () => {
+            const rows = Array.from(document.querySelectorAll('#ordersTable tbody tr'));
+            if (rows.length === 0) {
+                showAlert('info', 'No orders to download');
+                return;
+            }
+
+            let csvContent = "data:text/csv;charset=utf-8,";
+            csvContent += "Select,Order ID,Product Name,Quantity,Status\n"; // Header row
+
+            rows.forEach(row => {
+                const cells = row.querySelectorAll('td');
+                const rowData = Array.from(cells).map(cell => cell.textContent).join(",");
+                csvContent += rowData + "\n";
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "orders.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        });
+
+        function showAlert(type, message) {
+            const alertBox = document.createElement('div');
+            alertBox.className = `alert ${type}`;
+            alertBox.textContent = message;
+            document.body.appendChild(alertBox);
+            setTimeout(() => alertBox.remove(), 3000);
+        }
+
+        
+        // Fetch and display orders on page load
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                const response = await fetch('/api/orders');
+                const result = await response.json();
+
+                if (result.success) {
+                    const ordersTable = document.getElementById('ordersTable').getElementsByTagName('tbody')[0];
+                    ordersTable.innerHTML = '';
+
+                    result.orders.forEach(order => {
+                        const row = ordersTable.insertRow();
+                        row.innerHTML = `
+                            <td><input type="checkbox" value="${order.orderId}"></td>
+                            <td>${order.orderId}</td>
+                            <td>${order.productName}</td>
+                            <td>${order.quantity}</td>
+                            <td>${order.status}</td>
+                        `;
+                    });
+                } else {
+                    showAlert('error', 'Failed to load orders');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showAlert('error', 'An error occurred while loading orders');
+            }
+        });
+        function showModal() {
+    const modal = document.getElementById('approvalModal');
+    modal.classList.add('active');
+}
+
+function closeModal() {
+    const modal = document.getElementById('approvalModal');
+    modal.classList.remove('active');
+}
+document.getElementById('approveOrdersBtn').addEventListener('click', async function() {
+    const selectedOrderIds = Array.from(document.querySelectorAll('#ordersTable input[type="checkbox"]:checked'))
+        .map(cb => cb.value)
+        .filter(value => value);
+
+    if (selectedOrderIds.length === 0) {
+        showAlert('info', 'No orders selected for approval');
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/approve-orders', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ orderIds: selectedOrderIds })
+        });
+
+        const result = await response.json();
+        if (result.success) {
+            showModal(); // Show success modal
+        } else {
+            showAlert('error', 'Failed to approve orders: ' + result.message);
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        showAlert('error', 'An error occurred while approving orders');
+    }
+});
+
+    </script>
+
+    <!-- Popup Modal -->
+<div id="approvalModal" class="modal">
+    <span class="modal-close" onclick="closeModal()" >&times;</span>
+    <p>Selected Orders are approved</p>
+    <button onclick="closeModal()" >OK</button>
+</div>
+
+</body>
+</html>

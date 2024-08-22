@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Order</title>
+    <link rel="stylesheet" href="st.css">
+</head>
+<body>
+    <header>
+        <h1>Create Order</h1>
+        <img src="logo.png" alt="Company Logo" class="logo">
+        <button id="logoutButton">Logout</button>
+    </header>
+    <main>
+        <form id="createOrderForm">
+            <div>
+                <label for="productName">Product Name:</label>
+                <input type="text" id="productName" name="productName" required>
+            </div>
+            <div>
+                <label for="quantity">Quantity:</label>
+                <input type="number" id="quantity" name="quantity" min="1" required>
+            </div>
+            <button type="submit">Create Order</button>
+        </form>
+        <div id="responseMessage" class="response-message"></div>
+        <div id="ordersContainer">
+            <h2 style="color: white;">Orders</h2>
+            <table id="ordersTable">
+                <thead>
+                    <tr>
+                        <th>Order ID</th>
+                        <th>Product Name</th>
+                        <th>Quantity</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="ordersTableBody">
+                    <!-- Orders will be populated here -->
+                </tbody>
+            </table>
+            <button id="downloadCSVButton">Download CSV</button>
+            <button class="submitOrdersButton" onclick="submitOrders()">Submit Orders</button> <!-- Submit Orders Button -->
+        </div>
+        <br>
+        <form id="modifyOrderForm" style="display: none;">
+            <input type="hidden" id="modifyOrderId">
+            <div>
+                <label for="modifyProductName">Product Name:</label>
+                <input type="text" id="modifyProductName" name="modifyProductName" required>
+            </div>
+            <div>
+                <label for="modifyQuantity">Quantity:</label>
+                <input type="number" id="modifyQuantity" name="modifyQuantity" min="1" required>
+            </div>
+            <button type="submit">Modify Order</button>
+        </form>
+    </main>
+    <script>
+
+function submitOrders() {
+    showAlert('success', 'Orders have been submitted.');
+    // Add logic to handle order submission if needed
+}
+        document.getElementById('createOrderForm').addEventListener('submit', async function(event) {
+            event.preventDefault();
+
+            const productName = document.getElementById('productName').value.trim();
+            const quantity = parseInt(document.getElementById('quantity').value, 10);
+
+            if (!productName || quantity < 1) {
+                showAlert('error', 'Invalid input');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/orders', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ productName, quantity })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showAlert('success', 'Order created successfully');
+                    fetchAndDisplayOrders(); // Refresh the orders list
+                    document.getElementById('createOrderForm').reset(); // Clear form fields
+                } else {
+                    showAlert('error', 'Failed to create order: ' + result.message);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showAlert('error', 'An error occurred while creating the order');
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            await fetchAndDisplayOrders();
+        });
+
+        async function fetchAndDisplayOrders() {
+            try {
+                const response = await fetch('/api/orders');
+                const result = await response.json();
+
+                if (result.success) {
+                    displayOrders(result.orders);
+                } else {
+                    showAlert('error', 'Failed to fetch orders');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showAlert('error', 'An error occurred while fetching orders');
+            }
+        }
+
+        function displayOrders(orders) {
+            const ordersTable = document.getElementById('ordersTableBody');
+            ordersTable.innerHTML = ''; // Clear existing orders
+
+            orders.forEach(order => {
+                const row = document.createElement('tr');
+
+                const idCell = document.createElement('td');
+                idCell.textContent = order.orderId;
+                row.appendChild(idCell);
+
+                const nameCell = document.createElement('td');
+                nameCell.textContent = order.productName;
+                row.appendChild(nameCell);
+
+                const quantityCell = document.createElement('td');
+                quantityCell.textContent = order.quantity;
+                row.appendChild(quantityCell);
+
+                const actionCell = document.createElement('td');
+
+                const modifyButton = document.createElement('button');
+                modifyButton.className = 'modifyButton';
+                modifyButton.textContent = 'Modify';
+                modifyButton.onclick = () => showModifyOrderForm(order);
+                actionCell.appendChild(modifyButton);
+
+                const deleteButton = document.createElement('button');
+                deleteButton.className = 'deleteButton';
+                deleteButton.textContent = 'Delete';
+                deleteButton.onclick = () => deleteOrder(order.orderId);
+                actionCell.appendChild(deleteButton);
+
+                const approveButton = document.createElement('button');
+                approveButton.className = 'approveButton';
+                approveButton.textContent = 'Approve';
+                approveButton.onclick = () => approveOrder(order.orderId);
+                actionCell.appendChild(approveButton);
+
+                row.appendChild(actionCell);
+                ordersTable.appendChild(row);
+            });
+        }
+
+        function showModifyOrderForm(order) {
+            document.getElementById('modifyOrderId').value = order.orderId;
+            document.getElementById('modifyProductName').value = order.productName;
+            document.getElementById('modifyQuantity').value = order.quantity;
+            document.getElementById('modifyOrderForm').style.display = 'block';
+        }
+
+        document.getElementById('modifyOrderForm').addEventListener('submit', async function(event) {
+            event.preventDefault();
+
+            const orderId = document.getElementById('modifyOrderId').value;
+            const productName = document.getElementById('modifyProductName').value;
+            const quantity = document.getElementById('modifyQuantity').value;
+
+            try {
+                const response = await fetch(`/api/orders/${orderId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ productName, quantity })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showAlert('success', 'Order modified successfully');
+                    document.getElementById('modifyOrderForm').style.display = 'none';
+                    fetchAndDisplayOrders(); // Refresh the orders list
+                } else {
+                    showAlert('error', 'Failed to modify order: ' + result.message);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showAlert('error', 'An error occurred while modifying the order');
+            }
+        });
+
+
+        /////////////////////////////////////
+        async function deleteOrder(orderId) {
+    console.log('Deleting order with ID:', orderId); // Debugging line
+
+    try {
+        const response = await fetch(`/api/orders/${orderId}`, {
+            method: 'DELETE'
+        });
+
+        const result = await response.json();
+        console.log('Delete response:', result); // Debugging line
+
+        if (result.success) {
+            showAlert('success', 'Order deleted successfully');
+            fetchAndDisplayOrders(); // Refresh the orders list
+        } else {
+            showAlert('error', 'Failed to delete order: ' + result.message);
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        showAlert('error', 'An error occurred while deleting the order');
+    }
+}
+
+
+        async function approveOrder(orderId) {
+            try {
+                const response = await fetch(`/api/orders/${orderId}/approve`, {
+                    method: 'POST'
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showAlert('success', 'Order approved successfully');
+                    fetchAndDisplayOrders(); // Refresh the orders list
+                } else {
+                    showAlert('error', 'Failed to approve order: ' + result.message);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showAlert('error', 'An error occurred while approving the order');
+            }
+        }
+
+        function showAlert(type, message) {
+            const popupOverlay = document.getElementById('popupOverlay');
+            const popupMessage = document.getElementById('popupMessage');
+            popupMessage.textContent = message;
+            popupOverlay.style.display = 'flex'; // Show the popup
+        }
+
+        function closePopup() {
+            const popupOverlay = document.getElementById('popupOverlay');
+            popupOverlay.style.display = 'none'; // Hide the popup
+        }
+
+        document.getElementById('logoutButton').addEventListener('click', () => {
+            window.location.href = '/index.html';
+        });
+
+        document.getElementById('downloadCSVButton').addEventListener('click', function() {
+            window.location.href = '/api/orders/csv'; // Trigger CSV download
+        });
+
+        document.getElementById('createOrderForm').addEventListener('submit', async function(event) {
+            if (result.success) {
+                showAlert('success', 'Order created successfully');
+            } else {
+                showAlert('error', 'Failed to create order: ' + result.message);
+            }
+        });
+
+        document.getElementById('modifyOrderForm').addEventListener('submit', async function(event) {
+            if (result.success) {
+                showAlert('success', 'Order modified successfully');
+            } else {
+                showAlert('error', 'Failed to modify order: ' + result.message);
+            }
+        });
+
+       
+
+    </script>
+
+    <div id="popupOverlay" class="popup-overlay">
+        <div class="popup-content">
+            <p id="popupMessage"></p>
+            <button class="popup-button" onclick="closePopup()">Close</button>
+        </div>
+    </div>
+</body>
+</html>
